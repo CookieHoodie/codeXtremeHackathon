@@ -9,3 +9,4 @@ __pycache__/
 
 # data files
 visualize/data/
+!visualize/data/doc2vec.model
