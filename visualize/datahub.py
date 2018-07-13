@@ -148,17 +148,20 @@ def tokenize_content(data_list):
         return tokens_without_stop_words
 
     cleaned_list = []
+    total_size = len(data_list)
+    counter = 0
     for row in data_list:
         content = row[1]
         tokens = tokenize_data(content)
         cleaned_list.append(tokens)
+        counter += 1
+        print("{} out of {}".format(counter, total_size))
 
     return cleaned_list
 
 
 def save_tagged_data(tokenized_content_list, output_file):
-    with open(output_file, "w") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         for content in tokenized_content_list:
             f.write(" ".join(content))
             f.write("\n")
-            break
