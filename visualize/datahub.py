@@ -119,7 +119,7 @@ def load_data(filename):
     with open(filename, newline='', encoding="utf-8", errors='replace') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            data.append([row['title'],row['content']])
+            data.append([row['title'], row['content']])
 
     return data
 
@@ -128,7 +128,9 @@ def get_full_path(filename):
     return os.path.join(data_folder, filename)
 
 
-def clean_and_tokenize_data(data_list):
+def tokenize_content(data_list):
+    # data_list: ["title", "content"]
+    # return: [tokens]
     stop_words = set(stopwords.words("english"))
 
     def tokenize_data(data):
@@ -137,8 +139,6 @@ def clean_and_tokenize_data(data_list):
 
         :param data: untokenized string document
         :type data: str
-        :param stop_words: stop_words to be removed
-        :type stop_words: set[str]
         :return: tokenized list
         :rtype: list[str]
         """
@@ -151,25 +151,14 @@ def clean_and_tokenize_data(data_list):
     for row in data_list:
         content = row[1]
         tokens = tokenize_data(content)
-        cleaned_list.append([row[0], tokens])
+        cleaned_list.append(tokens)
 
     return cleaned_list
 
 
-def main():
-    print("loading data")
-    data_list = load_data(get_full_path("articles1.csv"))
-    print("tokenizing data")
-    cleaned_data_list = clean_and_tokenize_data(data_list)
-    counter = 0
-    for row in cleaned_data_list:
-        print(row[0])
-        print(row[1])
-        counter += 1
-        if counter == 10:
+def save_tagged_data(tokenized_content_list, output_file):
+    with open(output_file, "w") as f:
+        for content in tokenized_content_list:
+            f.write(" ".join(content))
+            f.write("\n")
             break
-
-
-if __name__ == '__main__':
-    main()
-
