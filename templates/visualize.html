@@ -2,9 +2,467 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Visualize</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.12/d3.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+    <script>
+        // Add your javascript here
+        var root =
+        {
+          "groupName": "all",
+          "children": [
+            {
+              "groupName": "fruit",
+              "children": [
+                {
+                  "groupName": "purple",
+                  "children": [
+                    {
+                      "groupName": "grape",
+                      "webpages": [
+                        {
+                          "name": "grape title 1",
+                          "url": "grape url 1",
+                          "snippet": "grape snippet 1"
+                        },
+                        {
+                          "name": "grape title 2",
+                          "url": "grape url 2",
+                          "snippet": "grape snippet 2"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "mangosteen",
+                      "webpages": [
+                        {
+                          "name": "mangosteen title 1",
+                          "url": "mangosteen url 1",
+                          "snippet": "mangosteen snippet 1"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "groupName": "red",
+                  "webpages": [
+                    {
+                      "name": "red title 1",
+                      "url": "red url 1",
+                      "snippet": "red snippet 1"
+                    },
+                    {
+                      "name": "red title 2",
+                      "url": "red url 2",
+                      "snippet": "red snippet 2"
+                    }
+                  ]
+                },
+                {
+                  "groupName": "yellow",
+                  "children":[
+                    {
+                      "groupName": "long",
+                      "children": [
+                        {
+                          "groupName": "banana",
+                          "webpages": [
+                            {
+                              "name": "banana title 1",
+                              "url": "banana url 1",
+                              "snippet": "banana snippet 1"
+                            },
+                            {
+                              "name": "banana title 2",
+                              "url": "banana url 2",
+                              "snippet": "banana snippet 2"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "groupName": "games",
+              "webpages": [
+                {
+                  "name": "game title 1",
+                  "url": "game url 1",
+                  "snippet": "game snippet 1"
+                },
+                {
+                  "name": "game title 2",
+                  "url": "game url 2",
+                  "snippet": "game snippet 2"
+                }
+              ]
+            }
+          ]
+        }
+
+        $(document).ready(function() {
+
+          var width = 600,
+            height = 400,
+            radius = (Math.min(width, height) / 2) - 10;
+
+          var formatNumber = d3.format(",d");
+
+          var x = d3.scale.linear()
+            .range([0, 2 * Math.PI]);
+
+          var y = d3.scale.sqrt()
+            .range([0, radius]);
+
+          var color = d3.scale.category20c();
+
+          var partition = d3.layout.partition()
+            .value(function(d) {
+              return 300;
+            });
+
+          var arc = d3.svg.arc()
+            .startAngle(function(d) {
+              return Math.max(0, Math.min(2 * Math.PI, x(d.x)));
+            })
+            .endAngle(function(d) {
+              return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx)));
+            })
+            .innerRadius(function(d) {
+              return Math.max(0, y(d.y));
+            })
+            .outerRadius(function(d) {
+              return Math.max(0, y(d.y + d.dy));
+            });
+
+          var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
+
+
+
+          var data;
+
+            if(data){
+              svg.selectAll("path").data(partition.nodes(root)).exit().remove();
+              d3.select("#webpage-contents ul").selectAll("li").data(root).exit().remove();
+            }
+
+            data = root;
+
+            svg.selectAll("path")
+              .data(partition.nodes(root))
+              .enter().append("path")
+              .attr("d", arc)
+              .style("fill", function(d) {
+                return color((d.children ? d : d.parent).groupName);
+              })
+              .style("display", function(d) {
+                if (d.depth > 1) {
+                  return "none"
+                } else {
+                  return "";
+                }
+              })
+              .on("click", click)
+              .append("title")
+              .text(function(d) {
+                  return d.groupName + "\n";
+              });
+
+            d3.select("#webpage-contents ul")
+              .selectAll("li")
+              .data(root)
+              .enter().append("li")
+              .append("a")
+              .attr("href", function(d){if(d.url)return d.url; else return "";})
+              .text(function(d){if(d.name)return d.name; else return "";})
+              .append("p")
+              .text(function(d){if(d.snippet)return d.snippet; else return "";})
+              console.log(root);
+
+          function click(d) {
+            svg.transition()
+              .duration(750)
+              .tween("scale", function() {
+                var xd = d3.interpolate(x.domain(), [d.x, d.x + d.dx]),
+                  yd = d3.interpolate(y.domain(), [d.y, 1]),
+                  yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
+                return function(t) {
+                  x.domain(xd(t));
+                  y.domain(yd(t)).range(yr(t));
+                };
+              })
+              .selectAll("path")
+              .style("display", function(d1) {
+                if (d1.depth > d.depth+1) {
+                  return "none"
+                } else {
+                  return "";
+                }
+              })
+              .attrTween("d", function(d) {
+                return function() {
+                  return arc(d);
+                };
+              });
+          }
+
+          d3.select(self.frameElement).style("height", height + "px");
+
+        });
+    </script>
+    <!--End of sample data-->
+
+    <!--Start of d3.js code-->
+
+    <!--
+        each group should be a node with name 'groupName'
+        the new nodes after selecting a node would be the subgroups (ie. the nested groups) under that node
+        the displayed webpages in the right half of the page should contain all the webpages under the nodes
+        For example:
+            When user has not chosen any node, display all webpages inside the json list
+            When user has chosen node 'g1', all the webpages nested under 'g1' should be displayed instead
+    -->
 </head>
 <body>
-    <h1>Testing 123</h1>
+    <div id="search-box-div" align="center">
+      <input class="form-control mr-sm-2" id="search-box" type="text" placeholder="Search...">
+    </div>
+    <div class="container" style="margin-top: 10%;">
+      <div class="row">
+        <div class="col-7" style="float: left;">
+          <div id="chart">
+              <!--Where the chart html should be-->
+          </div>
+      </div>
+      <div class="col-5" style="float: right;">
+          <div id="webpage-contents">
+            <p></p>
+            <ul></ul>
+              <!--
+                  Render the webpages in the format:
+                      <a href="{{ url }}">{{ name }}</a>
+                      <p>{{ snippet }}</p>
+
+                  I've actually implemented something similar in the most bottom comments but with different dataset,
+                  u can refer to that
+              -->
+          </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
+
+
+
+
+<!--You can ignore the code below this line-->
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+    <!--<meta charset="UTF-8">-->
+    <!--<title>Visualize</title>-->
+
+    <!--<script src="https://d3js.org/d3.v5.min.js"></script>-->
+    <!--<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>-->
+
+    <!--<script>-->
+        <!--$(document).ready(function() {-->
+            <!--var displayData;-->
+
+            <!--$("#search-box").keyup(function (e) {-->
+                <!--if (e.keyCode == 13) {-->
+                    <!--var input = $("#search-box").val();-->
+                    <!--if (!$.trim(input).length) {-->
+                        <!--alert("Empty");-->
+                    <!--}-->
+                    <!--else {-->
+                        <!--$("#chart-div > p").text("Searching for " + input + "... Please wait for a while...");-->
+                        <!--var url = "data?q=" + input;-->
+                        <!--getData(url);-->
+                    <!--}-->
+                <!--}-->
+            <!--});-->
+
+            <!--function getData(url) {-->
+                <!--d3.json(url).then(function(returnedData) {-->
+                    <!--console.log(returnedData);-->
+                    <!--if (displayData) {-->
+                        <!--d3.select("#chart-div ul").selectAll("li").data(returnedData.title).exit().remove();-->
+                    <!--}-->
+                    <!--displayData = returnedData.title;-->
+                    <!--d3.select("#chart-div ul")-->
+                        <!--.selectAll("li")-->
+                        <!--.data(returnedData.title)-->
+                        <!--.text(function(d) {return d;})-->
+                        <!--.enter().append("li")-->
+                        <!--.text(function(d) {return d;});-->
+                <!--});-->
+            <!--}-->
+        <!--});-->
+    <!--</script>-->
+<!--</head>-->
+<!--<body>-->
+    <!--<div id="search-box-div" align="center">-->
+        <!--<input id="search-box" type="text" placeholder="Search...">-->
+    <!--</div>-->
+    <!--<div id="chart-div">-->
+        <!--<p></p>-->
+        <!--<ul></ul>-->
+    <!--</div>-->
+<!--</body>-->
+<!--</html>-->
+
+
+
+
+
+
+
+
+
+<!--$(document).ready(function() {-->
+
+  <!--var width = 600,-->
+    <!--height = 400,-->
+    <!--radius = (Math.min(width, height) / 2) - 10;-->
+
+  <!--var formatNumber = d3.format(",d");-->
+
+  <!--var x = d3.scale.linear()-->
+    <!--.range([0, 2 * Math.PI]);-->
+
+  <!--var y = d3.scale.sqrt()-->
+    <!--.range([0, radius]);-->
+
+  <!--var color = d3.scale.category20c();-->
+
+  <!--var partition = d3.layout.partition()-->
+    <!--.value(function(d) {-->
+      <!--return d.size;-->
+    <!--});-->
+
+  <!--var arc = d3.svg.arc()-->
+    <!--.startAngle(function(d) {-->
+      <!--return Math.max(0, Math.min(2 * Math.PI, x(d.x)));-->
+    <!--})-->
+    <!--.endAngle(function(d) {-->
+      <!--return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx)));-->
+    <!--})-->
+    <!--.innerRadius(function(d) {-->
+      <!--return Math.max(0, y(d.y));-->
+    <!--})-->
+    <!--.outerRadius(function(d) {-->
+      <!--return Math.max(0, y(d.y + d.dy));-->
+    <!--});-->
+
+  <!--var svg = d3.select("body").append("svg")-->
+    <!--.attr("width", width)-->
+    <!--.attr("height", height)-->
+    <!--.append("g")-->
+    <!--.attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");-->
+
+
+
+  <!--var data;-->
+
+  <!--d3.json("flare.json", function(error, root) {-->
+    <!--if (error) throw error;-->
+
+    <!--data = root;-->
+
+    <!--svg.selectAll("path")-->
+      <!--.data(partition.nodes(root))-->
+      <!--.enter().append("path")-->
+      <!--.attr("d", arc)-->
+      <!--.style("fill", function(d) {-->
+        <!--return color((d.children ? d : d.parent).name);-->
+      <!--})-->
+      <!--.style("display", function(d) {-->
+        <!--if (d.depth > 1) {-->
+          <!--return "none"-->
+        <!--} else {-->
+          <!--return "";-->
+        <!--}-->
+      <!--})-->
+      <!--.on("click", click)-->
+      <!--.append("title")-->
+      <!--.text(function(d) {-->
+        <!--return d.name + "\n" + formatNumber(d.value);-->
+      <!--});-->
+  <!--});-->
+
+  <!--function click(d) {-->
+    <!--svg.transition()-->
+      <!--.duration(750)-->
+      <!--.tween("scale", function() {-->
+        <!--var xd = d3.interpolate(x.domain(), [d.x, d.x + d.dx]),-->
+          <!--yd = d3.interpolate(y.domain(), [d.y, 1]),-->
+          <!--yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);-->
+        <!--return function(t) {-->
+          <!--x.domain(xd(t));-->
+          <!--y.domain(yd(t)).range(yr(t));-->
+        <!--};-->
+      <!--})-->
+      <!--.selectAll("path")-->
+      <!--.style("display", function(d1) {-->
+        <!--if (d1.depth > d.depth + 1) {-->
+          <!--return "none"-->
+        <!--} else {-->
+          <!--return "";-->
+        <!--}-->
+      <!--})-->
+      <!--.attrTween("d", function(d) {-->
+        <!--return function() {-->
+          <!--return arc(d);-->
+        <!--};-->
+      <!--});-->
+  <!--}-->
+
+  <!--d3.select(self.frameElement).style("height", height + "px");-->
+
+<!--});-->
+
+
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+    <!--<head>-->
+        <!--<meta charset="UTF-8">-->
+        <!--<title>Visualize</title>-->
+
+        <!--<script src="https://d3js.org/d3.v5.min.js"></script>-->
+        <!--<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>-->
+
+        <!--<script>-->
+            <!--$(document).ready(function() {-->
+                <!--d3.json("/test-webpage?q=gaming laptop affordable").then(function(data) {-->
+                    <!--var divInBody = d3.select("body").data(data.webpages).enter().append("div");-->
+                    <!--divInBody.append("a").attr("href", function(d) {return d.url}).html(function(d) {return d.name});-->
+                    <!--divInBody.append("p").html(function(d) {return d.snippet});-->
+                <!--});-->
+            <!--});-->
+        <!--</script>-->
+    <!--</head>-->
+    <!--<body>-->
+
+    <!--</body>-->
+<!--</html>-->
